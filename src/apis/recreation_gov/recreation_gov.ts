@@ -37,7 +37,7 @@ class Campsite implements ICampsite {
   getAvailableDates() {
     return Object.entries(this.data.availabilities).map(([date, value]) => {
       return {
-        date: DateTime.fromISO(date),
+        date: DateTime.fromISO(date, {zone: 'utc'}),
         isAvailable: value === API.CampsiteAvailability.Available,
       };
     });

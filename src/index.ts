@@ -17,6 +17,7 @@ function matchAvailableDateRanges(
   let sequenceLength = 0;
 
   sortedAvailabilities.forEach((availability) => {
+
     if (sequenceStart) {
       if (sequenceLength === lengthOfStay) {
         const sequenceEnd = availability.date;
@@ -95,6 +96,7 @@ async function doTheThing(
   startDayOfWeek: number,
   lengthOfStay: number,
   monthsToCheck: number,
+  machine: boolean = false
 ) {
   const campground = await api.getCampground(campgroundId);
 
@@ -102,12 +104,14 @@ async function doTheThing(
     throw new Error(`No campground with id ${campgroundId}`);
   }
 
-  console.log(
-    `Checking for sites at ${campground.getName()} available on a ${weekdayToDay(
-      startDayOfWeek,
-    )} for ${lengthOfStay} ${lengthOfStay === 1 ? 'night' : 'nights'}.`,
-  );
-  console.log();
+  if (!machine) {
+    console.log(
+      `Checking for sites at ${campground.getName()} available on a ${weekdayToDay(
+        startDayOfWeek,
+      )} for ${lengthOfStay} ${lengthOfStay === 1 ? 'night' : 'nights'}.`,
+    );
+    console.log();
+  }
 
   const campsites = await api.getCampsites(campgroundId, monthsToCheck);
 
@@ -121,6 +125,15 @@ async function doTheThing(
     .filter((site) => site.matchingRanges.length > 0);
 
   const regrouped = consolidateItineraries(matches);
+  if (machine) {
+    return new Promise((resolve, reject) => {
+      resolve({
+        campground: campground,
+        availability: regrouped
+      })
+    })
+  }
+
 
   if (regrouped.length > 0) {
     const length = regrouped.length;
@@ -151,6 +164,7 @@ type Argv = {
   day: string;
   nights: number;
   months: number;
+  machine: boolean;
 };
 
 function pickAPI(choice: APIChoice) {
@@ -160,9 +174,10 @@ function pickAPI(choice: APIChoice) {
 async function main(argv: Argv) {
   try {
     const api = pickAPI(argv.api);
-    await doTheThing(api, argv.campground, dayToWeekday(argv.day), argv.nights, argv.months);
+    const res = await doTheThing(api, argv.campground, dayToWeekday(argv.day), argv.nights, argv.months, argv.machine);
+    return res;
   } catch (e) {
-    console.error(e.message);
+    console.error(e);
     process.exit(1);
   }
 }
@@ -209,7 +224,15 @@ if (require.main === module) {
       type: 'number',
       default: 6,
       description: 'Number of months to check',
-    });
+    })
+    .option('machine', {
+      type: 'bool',
+      default: false,
+      description: 'For machine consumption',
+    })
+    ;
 
   main(argv);
 }
+
+exports.main = main;
