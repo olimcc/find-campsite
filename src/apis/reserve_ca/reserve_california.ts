@@ -62,11 +62,12 @@ export async function getCampsites(
     EndDate: end.toFormat(API_DATE_FORMAT),
   };
 
+  let response;
   let attempt = 0;
-  const attempts = 5;
+  const attempts = 4;
   while (attempt < attempts) {
-    const response = await makePostRequest<API.GridResponse>(API_ENDPOINT, request);
-    if (response.data.Message.startsWith('Invalid')) {
+    response = await makePostRequest<API.GridResponse>(API_ENDPOINT, request);
+    if ((response.data && response.data.Message.startsWith('Invalid')) || response.status != 200) {
       attempt += 1;
     } else {
       return Object.values(response.data.Facility.Units).map(
@@ -74,5 +75,5 @@ export async function getCampsites(
       );
     }
   }
-  throw 'getCampsites fetch error';
+  throw `getCampsites fetch error:\n${response}`;
 }
