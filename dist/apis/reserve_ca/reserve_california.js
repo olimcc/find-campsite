@@ -100,7 +100,7 @@ var Campsite = /** @class */ (function () {
 }());
 function getCampsites(campgroundId, monthsToCheck) {
     return __awaiter(this, void 0, void 0, function () {
-        var start, end, request, response;
+        var start, end, request, attempt, attempts, response;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -111,10 +111,22 @@ function getCampsites(campgroundId, monthsToCheck) {
                         StartDate: start.toFormat(API_DATE_FORMAT),
                         EndDate: end.toFormat(API_DATE_FORMAT)
                     };
-                    return [4 /*yield*/, requests_1.makePostRequest(API_ENDPOINT, request)];
+                    attempt = 0;
+                    attempts = 5;
+                    _a.label = 1;
                 case 1:
+                    if (!(attempt < attempts)) return [3 /*break*/, 3];
+                    return [4 /*yield*/, requests_1.makePostRequest(API_ENDPOINT, request)];
+                case 2:
                     response = _a.sent();
-                    return [2 /*return*/, Object.values(response.data.Facility.Units).map(function (data) { return new Campsite(data); })];
+                    if (response.data.Message.startsWith('Invalid')) {
+                        attempt += 1;
+                    }
+                    else {
+                        return [2 /*return*/, Object.values(response.data.Facility.Units).map(function (data) { return new Campsite(data); })];
+                    }
+                    return [3 /*break*/, 1];
+                case 3: throw 'getCampsites fetch error';
             }
         });
     });

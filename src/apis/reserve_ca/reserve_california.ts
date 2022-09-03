@@ -7,7 +7,7 @@ const API_ENDPOINT = 'https://calirdr.usedirect.com/rdr/rdr/search/grid';
 const API_DATE_FORMAT = 'M-d-yyyy';
 
 class Campground implements ICampground {
-  constructor(private data: API.Facility) {}
+  constructor(private data: API.Facility) { }
 
   getName() {
     return this.data.Name;
@@ -29,7 +29,7 @@ export async function getCampground(campgroundId: string): Promise<Campground | 
 }
 
 class Campsite implements ICampsite {
-  constructor(private data: API.Unit) {}
+  constructor(private data: API.Unit) { }
 
   getAvailableDates() {
     return Object.entries(this.data.Slices).map(([date, value]) => {
@@ -62,7 +62,17 @@ export async function getCampsites(
     EndDate: end.toFormat(API_DATE_FORMAT),
   };
 
-  const response = await makePostRequest<API.GridResponse>(API_ENDPOINT, request);
-
-  return Object.values(response.data.Facility.Units).map((data) => new Campsite(data as API.Unit));
+  let attempt = 0;
+  const attempts = 5;
+  while (attempt < attempts) {
+    const response = await makePostRequest<API.GridResponse>(API_ENDPOINT, request);
+    if (response.data.Message.startsWith('Invalid')) {
+      attempt += 1;
+    } else {
+      return Object.values(response.data.Facility.Units).map(
+        (data) => new Campsite(data as API.Unit),
+      );
+    }
+  }
+  throw 'getCampsites fetch error';
 }
